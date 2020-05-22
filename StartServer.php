@@ -2,7 +2,7 @@
 
 <?php
 
-require __DIR__ . '/../dep/vendor/autoload.php';
+require __DIR__ . '/../../autoload.php';
 
 require __DIR__ . '/src/RunasRootService.php';
 

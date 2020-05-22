@@ -6,6 +6,8 @@ use React\EventLoop\Factory;
 use React\Socket\UnixServer as Server;
 use React\Socket\ConnectionInterface;
 
+use BrunoNatali\SystemInteraction\RunasRootServiceInterface;
+
 class RunasRootService implements RunasRootServiceInterface
 {
     private $loop;
@@ -18,7 +20,7 @@ class RunasRootService implements RunasRootServiceInterface
     function __construct(&$loop = null)
     {
         Tools::checkSocketFolder();
-        $this->socketPath = Tools::checkSocket(SOCKET);
+        $this->socketPath = Tools::checkSocket(self::R_AS_SOCKET);
 
         if ($loop === null) {
             $this->loop = Factory::create();
@@ -30,7 +32,7 @@ class RunasRootService implements RunasRootServiceInterface
 
     public function start()
     {
-        $this->server = new Server($this->socketPath, $loop);
+        $this->server = new Server($this->socketPath, $this->loop);
 
         $this->server->on('connection', function (ConnectionInterface $connection) {
             $remoteAddr = $connection->getRemoteAddress();

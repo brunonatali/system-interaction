@@ -8,15 +8,15 @@ use React\Socket\FixedUriConnector;
 
 class ClientConnection
 {
-    public static function connect(name $name, $loop, &$connector = null)
+    public static function connect(string $name, &$loop, &$connector = null)
     {
         Tools::checkSocketFolder();
         $path = Tools::checkSocket($name . '.sock');
 
-        $connector = new FixedUriConnector ($path, Client($loop));
+        $connector = new FixedUriConnector ($path, new \React\Socket\UnixConnector($loop));
         
         // destination will be ignored, actually connects to Unix domain socket
-        return $connector->connect('localhost:80');
+        return $connector->connect(self::SOCK_FOLDER . Tools::getSocketName('runas-root'));
     }
 
 }
