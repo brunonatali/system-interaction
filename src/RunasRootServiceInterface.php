@@ -1,7 +1,6 @@
 <?php
 
 namespace BrunoNatali\SystemInteraction;
-
 interface RunasRootServiceInterface extends MainInterface
 {
 

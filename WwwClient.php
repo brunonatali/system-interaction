@@ -9,6 +9,8 @@ require __DIR__ . '/../dep/vendor/autoload.php';
 
 require __DIR__ . '/src/ClientConnection.php';
 
+use BrunoNatali\SystemInteraction\ClientConnection;
+
 $loop = Factory::create();
 $myConn = null;
 

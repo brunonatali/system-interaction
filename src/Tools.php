@@ -1,7 +1,6 @@
 <?php declare(strict_types=1);
 
 namespace BrunoNatali\SystemInteraction;
-
 class Tools implements MainInterface
 {
 

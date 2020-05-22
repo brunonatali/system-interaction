@@ -2,7 +2,7 @@
 
 namespace BrunoNatali\SystemInteraction;
 
-interface RunasRootServiceInterface extends MainInterface
+interface MainInterface 
 {
     const SOCK_FOLDER = '/var/run/desh/app/';
 

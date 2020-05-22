@@ -6,6 +6,8 @@ require __DIR__ . '/../dep/vendor/autoload.php';
 
 require __DIR__ . '/src/RunasRootService.php';
 
+use BrunoNatali\SystemInteraction\RunasRootService;
+
 $service = new RunasRootService();
 
 $service->start();
