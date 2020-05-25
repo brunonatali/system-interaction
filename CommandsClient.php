@@ -50,7 +50,13 @@ class CommandsClient
                     $me->queue->resume();
 
                 $me->serverConn->on('data', function ($data) use ($me) {
-                    $me->parse($data);
+                    // Using futureTick to try to prevent data to be concatenated when more than 1 CMD was scheduled
+                    $me->loop->futureTick(function () use ($me) {
+                        $me->serverConn->write(json_encode(['ack' => true]));
+                    });
+                    $me->loop->futureTick(function () use ($me, $data) {
+                        $me->parse($data);
+                    });
                 });
             }, 
             function ($reason) use ($me, $procQueue) {
@@ -78,12 +84,12 @@ class CommandsClient
         $this->loop->stop();
     }
 
-    public function write($command): bool
+    public function sendCmd($command): bool
     {
         if (!$this->connected) return false;
 
         $this->outSystem->stdout('Exec CMD: ' . $command, OutSystem::LEVEL_NOTICE);
-        $this->serverConn->write($command);
+        $this->serverConn->write(json_encode(['cmd' => $command]));
         $this->queue->pause();
 
         return true;
@@ -97,23 +103,24 @@ class CommandsClient
             return;
         }
 
-        var_dump($val);
+        if (!is_array($pVal = json_decode($val))) {
+            $this->outSystem->stdout("Wrong data: '$val'", OutSystem::LEVEL_IMPORTANT);
+            return;
+        }
 
-        if (!is_array($val = json_decode($val))) return;
-
-        if (isset($val['data'])) {
+        if (isset($pVal['data'])) {
             if ($this->answerParse !== null) {
-                $this->answerParse($val['data']);
+                $this->answerParse($pVal['data']);
                 $this->answerParse = null;
             } else {
-                $this->outSystem->stdout('Answer CMD: ' . $val['data'], OutSystem::LEVEL_NOTICE);
+                $this->outSystem->stdout('Answer CMD: ' . $pVal['data'], OutSystem::LEVEL_NOTICE);
             }
-        } else if (isset($val['result'])) {
+        } else if (isset($pVal['result'])) {
             if ($this->answerParse !== null) {
-                $this->answerParse($val['result']);
+                $this->answerParse($pVal['result']);
                 $this->answerParse = null;
             } else {
-                $this->outSystem->stdout('Result CMD: ' . $val['result'], OutSystem::LEVEL_NOTICE);
+                $this->outSystem->stdout('Result CMD: ' . $pVal['result'], OutSystem::LEVEL_NOTICE);
             }
 
             $this->queue->resume(); // Just resume after command result
@@ -131,7 +138,7 @@ if(count($argv) > 1) {
     unset($argv[0]);
     foreach ($argv as $key => $value) {
         $mine->queue->push( function () use ($mine, $value) {
-            if (!$mine->write($value)) {
+            if (!$mine->sendCmd($value)) {
                 $mine->scheduleConnect(5.0);
             }
         });

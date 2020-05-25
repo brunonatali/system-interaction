@@ -15,7 +15,7 @@ class RunasRootService implements RunasRootServiceInterface
 {
     private $loop;
     private $server;
-    private $queue;
+    private $clientConn = []; // Handle all clients info
     Protected $outSystem;
 
     private $socketPath;
@@ -47,34 +47,50 @@ class RunasRootService implements RunasRootServiceInterface
         \chmod($this->socketPath, 0777);
 
         $this->server->on('connection', function (ConnectionInterface $connection) {
-            //$remoteAddr = $connection->getRemoteAddress();
-            //var_dump($connection->stream);
-            
-            $this->outSystem->stdout('New client connection', OutSystem::LEVEL_NOTICE);
-        
-        
-            $connection->on('data', function ($data) use ($connection){
-                $this->outSystem->stdout('Command received: ' . $data, OutSystem::LEVEL_NOTICE);
-
-                $ret = $this->onData($data, $connection);
+            $myId = (int) $connection->stream;
+            $this->clientConn[$myId] = [
+                'conn' => &$connection,
+                'queue' => new Queue($this->loop)
+            ];
+            $this->outSystem->stdout("New client connection ($myId)", OutSystem::LEVEL_NOTICE);
                 
-                // Prevent result to be sent within main data;
-                $this->loop->futureTick(function () use ($connection, $ret) {
-                    $connection->write(json_encode(['result' => $ret]));
-                    $this->outSystem->stdout('Final result: ' . $ret, OutSystem::LEVEL_NOTICE);
-                });
+            $connection->on('data', function ($data) use ($myId) {
+                if (!is_array($pData = json_decode($data))) {
+                    $this->outSystem->stdout("Wrong data from $myId: '$data'", OutSystem::LEVEL_IMPORTANT);
+                    return;
+                }
+
+                if (isset($pData['cmd'])) {
+                    $this->outSystem->stdout("Command received ($myId): " . $pData['cmd'], OutSystem::LEVEL_NOTICE);
+
+                    $this->clientConn[$myId]['queue']->resume(); // Enable queue before start sending
+
+                    $ret = $this->onData($pData['cmd'], $myId);
+                    
+                    $this->queue->push(function () use ($connection, $ret) {
+                        $connection->write(json_encode(['result' => $ret]));
+                        $this->outSystem->stdout('Final result: ' . $ret, OutSystem::LEVEL_NOTICE);
+                    });
+
+                } else if (isset($pData['ack'])) {
+                    $this->outSystem->stdout("ACK received ($myId)", OutSystem::LEVEL_NOTICE);
+                    $this->clientConn[$myId]['queue']->resume();
+                }
             });
         
             $connection->on('end', function () {
                 $this->outSystem->stdout('Client connection ended', OutSystem::LEVEL_NOTICE);
+                $this->removeClient($id);
             });
         
             $connection->on('error', function ($e) {
                 $this->outSystem->stdout('Client connection Error: ' . $e->getMessage(), OutSystem::LEVEL_NOTICE);
+                $this->removeClient($id);
             });
         
             $connection->on('close', function () {
                 $this->outSystem->stdout('Client connection closed', OutSystem::LEVEL_NOTICE);
+                $this->removeClient($id);
             });
         
             //$connection->pipe($connection);
@@ -89,7 +105,7 @@ class RunasRootService implements RunasRootServiceInterface
         if ($this->autoStart) $this->loop->run();
     }
 
-    private function onData($data, $dest)
+    private function onData($data, $clientId)
     {
         $proc = proc_open(
             $data, 
@@ -99,10 +115,9 @@ class RunasRootService implements RunasRootServiceInterface
 
         $readed = stream_get_contents($pipes[1]);
 
-        // Prevent result to be sent within main data;
-        $this->loop->futureTick(function () use ($dest, $readed) {
-            $this->outSystem->stdout('SysReaded: ' . $readed, OutSystem::LEVEL_NOTICE);
-            $dest->write(json_encode(['data' => $readed]));
+        $this->queue->push(function () use ($clientId, $readed) {
+            $this->outSystem->stdout("SysReaded ($clientId): " . $readed, OutSystem::LEVEL_NOTICE);
+            $this->clientConn[$clientId]['conn']->write(json_encode(['data' => $readed]));
         });
         fclose($pipes[1]);
 
@@ -120,7 +135,7 @@ class RunasRootService implements RunasRootServiceInterface
         foreach ($pipes as $key => $value) {
             var_dump($value);
             if (stream_get_meta_data($value)['mode'] === 'w') continue;
-/*
+
             var_dump(stream_set_blocking($pipes[$key], false));
 
             $me = &$this;
@@ -139,7 +154,7 @@ class RunasRootService implements RunasRootServiceInterface
                 echo "$key - $chunk" . PHP_EOL;
                 $dest->write($chunk);
             });
-*/
+
             continue;
 
             $stream[$key] = new ReadableResourceStream($pipes[$key], $this->loop);
@@ -151,6 +166,12 @@ class RunasRootService implements RunasRootServiceInterface
                 echo "$key [CLOSED]" . PHP_EOL;
             });
         }
+    }
+
+    private function removeClient($id)
+    {
+        if (isset($this->clientConn[$id]))
+            unset($this->clientConn[$id]);
     }
 }
 
