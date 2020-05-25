@@ -1,0 +1,36 @@
+#!/usr/bin/php
+
+<?php
+
+require __DIR__ . '/../../autoload.php';
+
+use BrunoNatali\SystemInteraction\CommandsClient;
+
+if(count($argv) > 1) {
+    $loop = Factory::create();
+
+    $mine = new CommandsClient($loop, 'cli', ["outSystemEnabled" => true]);
+
+    unset($argv[0]);
+    foreach ($argv as $key => $value) {
+        $mine->queue->push( function () use ($mine, $value) {
+            if (!$mine->sendCmd($value)) {
+                $mine->scheduleConnect(5.0);
+            }
+        });
+    }
+
+    // End app
+    $mine->queue->push( function () use ($mine) {
+        $mine->close();
+    });
+
+    $mine->connect();
+
+    $loop->run();
+} else {
+    echo 'Usage:' . PHP_EOL;
+    echo pathinfo(__FILE__, PATHINFO_FILENAME) . ' "ls -l"' . PHP_EOL;
+    echo pathinfo(__FILE__, PATHINFO_FILENAME) . ' "ls \"  "ls \home"' . PHP_EOL;
+    exit;
+}
