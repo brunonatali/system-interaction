@@ -1,9 +1,9 @@
 <?php
 
-\chdir(__DIR__ . '/..'); // Change to root dir
+\chdir('..'); // Change to root dir
 $appName = \basename(\getcwd()); // Get APP dir name
-$pbin = __DIR__ . '/pbin'; // Set bin folder 
-$instructionsFile = __DIR__ . '/installation/install-instructions.json'; // Set instructions file
+$pbin = __DIR__ . '/../pbin'; // Set bin folder 
+$instructionsFile = __DIR__ . '/install-instructions.json'; // Set instructions file
 
 echo 'Starting ' . $appName . ' instalation' . PHP_EOL;
 
@@ -17,7 +17,7 @@ if (\file_exists($pbin)) {
 
 // Break if no instructions
 if (!\file_exists($instructionsFile) ||
-    !\is_array(($instructions = json_decode(\file_get_contents($instructionsFile))))) { // Load instructions
+    !\is_array(($instructions = json_decode(\file_get_contents($instructionsFile), true)))) { // Load instructions
     echo 'No instructions. Nothing else to do.' . PHP_EOL;
     exit;
 }
@@ -26,7 +26,7 @@ if (!\file_exists($instructionsFile) ||
 if (isset($instructions['sys-bin-files'])) {
     foreach ($instructions['sys-bin-files'] as $bin) {
         $out = [];
-        $result = run("ln -s $pbin/$bin /usr/sbin/" . basename($bin), $out);
+        $result = run("ln -s $pbin/$bin /usr/sbin/" . basename($bin, '.php'), $out);
 
         if ($result !== 0)
             echo "Error while installing '$bin'" . PHP_EOL;
@@ -64,15 +64,17 @@ if (isset($instructions['service'])) {
         if (isset($service['exec-only-after']))
             $content .= 'After=' . $service['exec-only-after'] . PHP_EOL; // network.target
 
+        $content .= PHP_EOL . '[Service]' . PHP_EOL;
+        $content .= 'Alias=' . $serviceName . PHP_EOL;
+        $content .= 'ExecStart=' . $pbin . '/' . $service['bin'] . PHP_EOL;
+
         $content .= PHP_EOL . '[Install]' . PHP_EOL;
-        $content = 'Alias=' . $serviceName . PHP_EOL;
-        $content = 'ExecStart=' . $pbin . '/' . $service['bin'] . PHP_EOL;
+        $content .= 'WantedBy=multi-user.target' . PHP_EOL;
+        $content .= 'KillSignal=SIGTERM' . PHP_EOL;
+        $content .= 'SendSIGKILL=no' . PHP_EOL; // Don't want to see an automated SIGKILL ever
 
-        $content = 'KillSignal=SIGTERM' . PHP_EOL;
-        $content = 'SendSIGKILL=no' . PHP_EOL; // Don't want to see an automated SIGKILL ever
-
-        $content = 'Restart=on-abort' . PHP_EOL;
-        $content = 'RestartSec=5s' . PHP_EOL;
+        $content .= 'Restart=on-abort' . PHP_EOL;
+        $content .= 'RestartSec=5s' . PHP_EOL;
 
         $serviceFile = '/etc/systemd/system/' . $serviceName;
         if (!\file_put_contents($serviceFile, $content) ||
