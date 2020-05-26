@@ -25,8 +25,13 @@ if (!\file_exists($instructionsFile) ||
 // Install bin files 
 if (isset($instructions['sys-bin-files'])) {
     foreach ($instructions['sys-bin-files'] as $bin) {
+        $symLink = '/usr/sbin/' . basename($bin, '.php');
+
+        if (\file_exists($symLink))
+            unlink($symLink);
+
         $out = [];
-        $result = run("ln -s $pbin/$bin /usr/sbin/" . basename($bin, '.php'), $out);
+        $result = run("ln -s $pbin/$bin $symLink", $out);
 
         if ($result !== 0)
             echo "Error while installing '$bin'" . PHP_EOL;
