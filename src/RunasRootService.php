@@ -54,7 +54,7 @@ class RunasRootService implements RunasRootServiceInterface
             ];
             $this->outSystem->stdout("New client connection ($myId)", OutSystem::LEVEL_NOTICE);
                 
-            $connection->on('data', function ($data) use ($myId) {
+            $connection->on('data', function ($data) use ($myId, $connection) {
                 if (!is_array($pData = json_decode($data, true))) {
                     $this->outSystem->stdout("Wrong data from $myId: '$data'", OutSystem::LEVEL_IMPORTANT);
                     return;
@@ -67,7 +67,7 @@ class RunasRootService implements RunasRootServiceInterface
 
                     $ret = $this->onData($pData['cmd'], $myId);
                     
-                    $this->queue->push(function () use ($connection, $ret) {
+                    $this->clientConn[$myId]['queue']->push(function () use ($connection, $ret) {
                         $connection->write(json_encode(['result' => $ret]));
                         $this->outSystem->stdout('Final result: ' . $ret, OutSystem::LEVEL_NOTICE);
                     });
@@ -78,19 +78,19 @@ class RunasRootService implements RunasRootServiceInterface
                 }
             });
         
-            $connection->on('end', function () {
+            $connection->on('end', function () use ($myId) {
                 $this->outSystem->stdout('Client connection ended', OutSystem::LEVEL_NOTICE);
-                $this->removeClient($id);
+                $this->removeClient($myId);
             });
         
-            $connection->on('error', function ($e) {
+            $connection->on('error', function ($e) use ($myId) {
                 $this->outSystem->stdout('Client connection Error: ' . $e->getMessage(), OutSystem::LEVEL_NOTICE);
-                $this->removeClient($id);
+                $this->removeClient($myId);
             });
         
-            $connection->on('close', function () {
+            $connection->on('close', function () use ($myId) {
                 $this->outSystem->stdout('Client connection closed', OutSystem::LEVEL_NOTICE);
-                $this->removeClient($id);
+                $this->removeClient($myId);
             });
         
             //$connection->pipe($connection);
@@ -115,7 +115,7 @@ class RunasRootService implements RunasRootServiceInterface
 
         $readed = stream_get_contents($pipes[1]);
 
-        $this->queue->push(function () use ($clientId, $readed) {
+        $this->clientConn[$clientId]['queue']->push(function () use ($clientId, $readed) {
             $this->outSystem->stdout("SysReaded ($clientId): " . $readed, OutSystem::LEVEL_NOTICE);
             $this->clientConn[$clientId]['conn']->write(json_encode(['data' => $readed]));
         });
@@ -174,10 +174,3 @@ class RunasRootService implements RunasRootServiceInterface
             unset($this->clientConn[$id]);
     }
 }
-
-
-
-
-
-
-
