@@ -55,7 +55,7 @@ class RunasRootService implements RunasRootServiceInterface
             $this->outSystem->stdout("New client connection ($myId)", OutSystem::LEVEL_NOTICE);
                 
             $connection->on('data', function ($data) use ($myId) {
-                if (!is_array($pData = json_decode($data))) {
+                if (!is_array($pData = json_decode($data, true))) {
                     $this->outSystem->stdout("Wrong data from $myId: '$data'", OutSystem::LEVEL_IMPORTANT);
                     return;
                 }

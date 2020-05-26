@@ -100,7 +100,7 @@ class CommandsClient
             return;
         }
 
-        if (!is_array($pVal = json_decode($val))) {
+        if (!is_array($pVal = json_decode($val, true))) {
             $this->outSystem->stdout("Wrong data: '$val'", OutSystem::LEVEL_IMPORTANT);
             return;
         }
