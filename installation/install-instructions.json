@@ -1,6 +1,6 @@
 {
     "sys-bin-files" : [
-        "commandsClient.php"
+        "commandsClient"
     ],
     "service" : [
         {
