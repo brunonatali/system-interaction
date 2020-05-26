@@ -6,9 +6,9 @@ class Tools implements ToolsInterface
 
     public static function checkSocketFolder(): bool
     {
-        if (!file_exists(self::SOCK_FOLDER)) {
-            mkdir(self::SOCK_FOLDER, 0755, true );
-            chmod(self::SOCK_FOLDER, 0755);
+        if (!\file_exists(self::SOCK_FOLDER)) {
+            \mkdir(self::SOCK_FOLDER, 0755, true );
+            \chmod(self::SOCK_FOLDER, 0755);
             return false;
         }
         return true;
@@ -17,7 +17,7 @@ class Tools implements ToolsInterface
     public static function checkSocket($sockName)
     {
         $path = self::SOCK_FOLDER . $sockName;
-        if (file_exists($path)) unlink($path);
+        if (\file_exists($path)) \unlink($path);
 
         return $path;
     }
