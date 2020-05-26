@@ -1,6 +1,11 @@
 {
-    "binary-files" : [
-        "commandsClient",
-        "startServer"
+    "sys-bin-files" : [
+        "commandsClient.php"
+    ],
+    "service" : [
+        {
+            "name" : "runasRootService",
+            "bin" : "startServer"
+        }
     ]
 }
