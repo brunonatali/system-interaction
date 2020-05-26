@@ -4,6 +4,7 @@
 
 require __DIR__ . '/../../../autoload.php';
 
+use React\EventLoop\Factory;
 use BrunoNatali\SystemInteraction\CommandsClient;
 
 if(count($argv) > 1) {

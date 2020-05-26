@@ -1,8 +1,7 @@
-#!/usr/bin/php
+<?php declare(strict_types=1);
 
-<?php
+namespace BrunoNatali\SystemInteraction;
 
-use React\EventLoop\Factory;
 use React\Socket\ConnectionInterface;
 
 use BrunoNatali\SystemInteraction\ClientConnection;
