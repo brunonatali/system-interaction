@@ -70,16 +70,16 @@ if (isset($instructions['service'])) {
             $content .= 'After=' . $service['exec-only-after'] . PHP_EOL; // network.target
 
         $content .= PHP_EOL . '[Service]' . PHP_EOL;
-        $content .= 'Alias=' . $serviceName . PHP_EOL;
+        //$content .= 'Alias=' . $serviceName . PHP_EOL;
         $content .= 'ExecStart=' . $pbin . '/' . $service['bin'] . PHP_EOL;
 
         $content .= PHP_EOL . '[Install]' . PHP_EOL;
         $content .= 'WantedBy=multi-user.target' . PHP_EOL;
-        $content .= 'KillSignal=SIGTERM' . PHP_EOL;
-        $content .= 'SendSIGKILL=no' . PHP_EOL; // Don't want to see an automated SIGKILL ever
+        //$content .= 'KillSignal=SIGTERM' . PHP_EOL;
+        //$content .= 'SendSIGKILL=no' . PHP_EOL; // Don't want to see an automated SIGKILL ever
 
-        $content .= 'Restart=on-abort' . PHP_EOL;
-        $content .= 'RestartSec=5s' . PHP_EOL;
+        //$content .= 'Restart=on-abort' . PHP_EOL;
+        //$content .= 'RestartSec=5s' . PHP_EOL;
 
         $serviceFile = '/etc/systemd/system/' . $serviceName;
         if (!\file_put_contents($serviceFile, $content) ||
