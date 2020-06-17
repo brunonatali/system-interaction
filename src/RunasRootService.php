@@ -6,6 +6,7 @@ use React\EventLoop\Factory;
 use React\Socket\UnixServer as Server;
 use React\Socket\ConnectionInterface;
 use React\Stream\ReadableResourceStream;
+use React\ChildProcess\Process as Proc; 
 
 use BrunoNatali\SystemInteraction\RunasRootServiceInterface;
 use BrunoNatali\Tools\OutSystem;
@@ -65,12 +66,7 @@ class RunasRootService implements RunasRootServiceInterface
 
                     $this->clientConn[$myId]['queue']->resume(); // Enable queue before start sending
 
-                    $ret = $this->onData($pData['cmd'], $myId);
-                    
-                    $this->clientConn[$myId]['queue']->push(function () use ($connection, $ret) {
-                        $connection->write(json_encode(['result' => $ret]));
-                        $this->outSystem->stdout('Final result: ' . $ret, OutSystem::LEVEL_NOTICE);
-                    });
+                    $this->onData($pData['cmd'], $myId);
 
                 } else if (isset($pData['ack'])) {
                     $this->outSystem->stdout("ACK received ($myId)", OutSystem::LEVEL_NOTICE);
@@ -107,65 +103,88 @@ class RunasRootService implements RunasRootServiceInterface
 
     private function onData($data, $clientId)
     {
-        $proc = proc_open(
-            $data, 
-            [ ["pipe","r"], ["pipe","w"], ["pipe","w"] ],
-            $pipes
-        );
+        $process = new Proc($data);
+        $process->start($this->loop);
 
-        $readed = stream_get_contents($pipes[1]);
-
-        $this->clientConn[$clientId]['queue']->push(function () use ($clientId, $readed) {
-            $this->outSystem->stdout("SysReaded ($clientId): " . $readed, OutSystem::LEVEL_NOTICE);
-            $this->clientConn[$clientId]['conn']->write(json_encode(['data' => $readed]));
+        $process->stdout->on('data', function ($readed) use ($clientId) {
+            if (isset($this->clientConn[$clientId]))
+                $this->clientConn[$clientId]['queue']->push(function () use ($clientId, $readed) {
+                    $this->clientConn[$clientId]['queue']->pause(); // Pause before write
+                    $this->outSystem->stdout("SysReaded ($clientId): " . $readed, OutSystem::LEVEL_NOTICE);
+                    $this->clientConn[$clientId]['conn']->write(json_encode(['data' => $readed]));
+                });
         });
-        fclose($pipes[1]);
 
-        return proc_close($proc);
+        $process->on('exit', function($exitCode, $termSignal) use ($clientId) {
+            if (isset($this->clientConn[$clientId]))
+                $this->clientConn[$clientId]['queue']->push(function () use ($clientId, $exitCode) {
+                    $this->clientConn[$clientId]['queue']->pause(); // Pause before write
+                    $this->outSystem->stdout('Final result: ' . $exitCode, OutSystem::LEVEL_NOTICE);
+                    $this->clientConn[$clientId]['conn']->write(json_encode(['result' => $exitCode]));
+                });
+        });
+        
+        /*
+            $proc = proc_open(
+                $data, 
+                [ ["pipe","r"], ["pipe","w"], ["pipe","w"] ],
+                $pipes
+            );
 
+            $readed = stream_get_contents($pipes[1]);
 
-
-
-        var_dump($proc);
-
-        fwrite($pipes[0], "\n");
-        fclose($pipes[0]);
-
-        $stream = [];
-        foreach ($pipes as $key => $value) {
-            var_dump($value);
-            if (stream_get_meta_data($value)['mode'] === 'w') continue;
-
-            var_dump(stream_set_blocking($pipes[$key], false));
-
-            $me = &$this;
-            $this->loop->addReadStream($pipes[$key], function ($stream) use ($me, $key, $dest) {
-                var_dump($stream);
-                //$chunk = stream_get_contents($stream);
-                $chunk = fread($stream, 65535);
-
-                // reading nothing means we reached EOF
-                if ($chunk === '') {
-                    $me->loop->removeReadStream($stream);
-                    fclose($stream);
-                    return;
-                }
-            
-                echo "$key - $chunk" . PHP_EOL;
-                $dest->write($chunk);
+            $this->clientConn[$clientId]['queue']->push(function () use ($clientId, $readed) {
+                $this->outSystem->stdout("SysReaded ($clientId): " . $readed, OutSystem::LEVEL_NOTICE);
+                $this->clientConn[$clientId]['conn']->write(json_encode(['data' => $readed]));
             });
+            fclose($pipes[1]);
 
-            continue;
+            return proc_close($proc);
 
-            $stream[$key] = new ReadableResourceStream($pipes[$key], $this->loop);
-            $stream[$key]->on('data', function ($chunk) use ($key, $dest) {
-                echo "$key - $chunk";
-                $dest->write($chunk);
-            });
-            $stream[$key]->on('close', function () use ($key) {
-                echo "$key [CLOSED]" . PHP_EOL;
-            });
-        }
+
+
+
+            var_dump($proc);
+
+            fwrite($pipes[0], "\n");
+            fclose($pipes[0]);
+
+            $stream = [];
+            foreach ($pipes as $key => $value) {
+                var_dump($value);
+                if (stream_get_meta_data($value)['mode'] === 'w') continue;
+
+                var_dump(stream_set_blocking($pipes[$key], false));
+
+                $me = &$this;
+                $this->loop->addReadStream($pipes[$key], function ($stream) use ($me, $key, $dest) {
+                    var_dump($stream);
+                    //$chunk = stream_get_contents($stream);
+                    $chunk = fread($stream, 65535);
+
+                    // reading nothing means we reached EOF
+                    if ($chunk === '') {
+                        $me->loop->removeReadStream($stream);
+                        fclose($stream);
+                        return;
+                    }
+                
+                    echo "$key - $chunk" . PHP_EOL;
+                    $dest->write($chunk);
+                });
+
+                continue;
+
+                $stream[$key] = new ReadableResourceStream($pipes[$key], $this->loop);
+                $stream[$key]->on('data', function ($chunk) use ($key, $dest) {
+                    echo "$key - $chunk";
+                    $dest->write($chunk);
+                });
+                $stream[$key]->on('close', function () use ($key) {
+                    echo "$key [CLOSED]" . PHP_EOL;
+                });
+            }
+        */
     }
 
     private function removeClient($id)

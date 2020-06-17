@@ -80,9 +80,11 @@ class CommandsClient
         $this->loop->stop();
     }
 
-    public function sendCmd($command): bool
+    public function sendCmd($command, $redirectStream = true): bool
     {
         if (!$this->connected) return false;
+
+        if ($redirectStream) $command .= ' 2>&1';
 
         $this->outSystem->stdout('Exec CMD: ' . $command, OutSystem::LEVEL_NOTICE);
         $this->serverConn->write(json_encode(['cmd' => $command]));
@@ -119,7 +121,7 @@ class CommandsClient
                 $this->outSystem->stdout('Result CMD: ' . $pVal['result'], OutSystem::LEVEL_NOTICE);
             }
 
-            $this->queue->resume(); // Just resume after command result
+            //$this->queue->resume(); // Just resume after command result
         }
     }
 }
