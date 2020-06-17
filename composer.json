@@ -10,7 +10,9 @@
 	],
     "require": {
 			"php": ">=7.3",
-			"react/socket": "^1.4"
+			"brunonatali/tools": "dev-master",
+			"react/socket": "^1.4",
+			"react/child-process": "^0.6.1"
 	},
 	"require-dev": {
 		"phpunit/phpunit": "^9"
