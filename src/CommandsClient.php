@@ -108,14 +108,14 @@ class CommandsClient
 
         if (isset($pVal['data'])) {
             if ($this->answerParse !== null) {
-                $this->answerParse($pVal['data']);
+                ($this->answerParse)($pVal['data']);
                 $this->answerParse = null;
             } else {
                 $this->outSystem->stdout('Answer CMD: ' . $pVal['data'], OutSystem::LEVEL_NOTICE);
             }
         } else if (isset($pVal['result'])) {
             if ($this->answerParse !== null) {
-                $this->answerParse($pVal['result']);
+                ($this->answerParse)($pVal['result']);
                 $this->answerParse = null;
             } else {
                 $this->outSystem->stdout('Result CMD: ' . $pVal['result'], OutSystem::LEVEL_NOTICE);
