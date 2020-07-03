@@ -10,7 +10,7 @@
 	],
     "require": {
 			"php": ">=7.3",
-			"brunonatali/tools": "0.3",
+			"brunonatali/tools": "^0.3",
 			"react/socket": "^1.4",
 			"react/child-process": "^0.6.1"
 	},
