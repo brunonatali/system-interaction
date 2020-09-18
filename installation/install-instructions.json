@@ -4,8 +4,9 @@
     ],
     "service" : [
         {
-            "name" : "runasRootService",
-            "bin" : "startServer"
+            "name" : "app-runas-root",
+            "bin" : "startServer",
+            "kill-child" : false
         }
     ]
 }

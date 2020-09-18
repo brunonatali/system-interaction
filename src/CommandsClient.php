@@ -80,14 +80,15 @@ class CommandsClient
         $this->loop->stop();
     }
 
-    public function sendCmd($command, $redirectStream = true): bool
+    public function sendCmd(string $command, bool $redirectStream = true): bool
     {
         if (!$this->connected) return false;
 
-        if ($redirectStream) $command .= ' 2>&1';
+        if ($redirectStream) 
+            $command .= ' 2>&1';
 
         $this->outSystem->stdout('Exec CMD: ' . $command, OutSystem::LEVEL_NOTICE);
-        $this->serverConn->write(json_encode(['cmd' => $command]));
+        $this->serverConn->write(\json_encode(['cmd' => $command]));
         $this->queue->pause();
 
         return true;

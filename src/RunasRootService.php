@@ -123,68 +123,6 @@ class RunasRootService implements RunasRootServiceInterface
                     $this->clientConn[$clientId]['conn']->write(json_encode(['result' => $exitCode]));
                 });
         });
-        
-        /*
-            $proc = proc_open(
-                $data, 
-                [ ["pipe","r"], ["pipe","w"], ["pipe","w"] ],
-                $pipes
-            );
-
-            $readed = stream_get_contents($pipes[1]);
-
-            $this->clientConn[$clientId]['queue']->push(function () use ($clientId, $readed) {
-                $this->outSystem->stdout("SysReaded ($clientId): " . $readed, OutSystem::LEVEL_NOTICE);
-                $this->clientConn[$clientId]['conn']->write(json_encode(['data' => $readed]));
-            });
-            fclose($pipes[1]);
-
-            return proc_close($proc);
-
-
-
-
-            var_dump($proc);
-
-            fwrite($pipes[0], "\n");
-            fclose($pipes[0]);
-
-            $stream = [];
-            foreach ($pipes as $key => $value) {
-                var_dump($value);
-                if (stream_get_meta_data($value)['mode'] === 'w') continue;
-
-                var_dump(stream_set_blocking($pipes[$key], false));
-
-                $me = &$this;
-                $this->loop->addReadStream($pipes[$key], function ($stream) use ($me, $key, $dest) {
-                    var_dump($stream);
-                    //$chunk = stream_get_contents($stream);
-                    $chunk = fread($stream, 65535);
-
-                    // reading nothing means we reached EOF
-                    if ($chunk === '') {
-                        $me->loop->removeReadStream($stream);
-                        fclose($stream);
-                        return;
-                    }
-                
-                    echo "$key - $chunk" . PHP_EOL;
-                    $dest->write($chunk);
-                });
-
-                continue;
-
-                $stream[$key] = new ReadableResourceStream($pipes[$key], $this->loop);
-                $stream[$key]->on('data', function ($chunk) use ($key, $dest) {
-                    echo "$key - $chunk";
-                    $dest->write($chunk);
-                });
-                $stream[$key]->on('close', function () use ($key) {
-                    echo "$key [CLOSED]" . PHP_EOL;
-                });
-            }
-        */
     }
 
     private function removeClient($id)
