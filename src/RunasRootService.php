@@ -44,7 +44,16 @@ class RunasRootService implements RunasRootServiceInterface
 
     public function start()
     {
-        $this->server = new Server($this->socketPath, $this->loop);
+        try {
+            $this->server = new Server($this->socketPath, $this->loop);
+        } catch (\RuntimeException $e) {
+            $this->outSystem->stdout('Main Runtime ERROR: ' . $e->getMessage(), OutSystem::LEVEL_NOTICE);
+            exit(1);
+        } catch (\Exception $e) {
+            $this->outSystem->stdout('Main ERROR: ' . $e->getMessage(), OutSystem::LEVEL_NOTICE);
+            exit(1);
+        }
+        
         \chmod($this->socketPath, 0777);
 
         $this->server->on('connection', function (ConnectionInterface $connection) {

@@ -6,8 +6,6 @@ require __DIR__ . '/../../../autoload.php';
 
 use BrunoNatali\SystemInteraction\RunasRootService;
 
-$service = new RunasRootService();
-
 /**
  * Check if old service is running, before start new service
 */
@@ -15,12 +13,20 @@ $discard = null;
 $fResult = 1;
 @\exec("systemctl is-active --quiet runasRootService", $discard, $fResult);
 if ($fResult === 0) {
+    echo "Old service finded!" . PHP_EOL;
     $fResult = 1;
     @\exec("systemctl disable runasRootService", $discard, $fResult);
     if ($fResult !== 0) {
         echo "Could not start new service due a non disablable old service" . PHP_EOL;
         exit(1);
     }
+    @\exec("systemctl stop runasRootService", $discard, $fResult);
+    if ($fResult !== 0) {
+        echo "Could not start new service due a non stopable old service" . PHP_EOL;
+        exit(1);
+    }
 }
+
+$service = new RunasRootService();
 
 $service->start();

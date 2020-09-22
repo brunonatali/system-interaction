@@ -7,8 +7,8 @@ class Tools implements ToolsInterface
     public static function checkSocketFolder(): bool
     {
         if (!\file_exists(self::SOCK_FOLDER)) {
-            \mkdir(self::SOCK_FOLDER, 0755, true );
-            \chmod(self::SOCK_FOLDER, 0755);
+            @\mkdir(self::SOCK_FOLDER, 0755, true );
+            @\chmod(self::SOCK_FOLDER, 0755);
             return false;
         }
         return true;
