@@ -8,5 +8,6 @@
             "bin" : "startServer",
             "kill-child" : false
         }
-    ]
+    ],
+    "post-installation" : "/update-service.sh"
 }

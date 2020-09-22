@@ -8,4 +8,19 @@ use BrunoNatali\SystemInteraction\RunasRootService;
 
 $service = new RunasRootService();
 
+/**
+ * Check if old service is running, before start new service
+*/
+$discard = null;
+$fResult = 1;
+@\exec("systemctl is-active --quiet runasRootService", $discard, $fResult);
+if ($fResult === 0) {
+    $fResult = 1;
+    @\exec("systemctl disable runasRootService", $discard, $fResult);
+    if ($fResult !== 0) {
+        echo "Could not start new service due a non disablable old service" . PHP_EOL;
+        exit(1);
+    }
+}
+
 $service->start();
